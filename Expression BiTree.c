@@ -53,10 +53,10 @@ char *Transform(QList Q) {
 
 int IsLegal(char ch) {
     //返回字符ch是否合法
-    return ch >= 'A' && ch <= 'Z' || ch == '!' || ch == '&' || ch == '|' || ch == '>' || ch == '=' || ch == '(' || ch == ')';
+    return ch >= 'A' && ch <= 'Z' || ch == '0' || ch == '1' || ch == '!' || ch == '&' || ch == '|' || ch == '>' || ch == '=' || ch == '(' || ch == ')';
 } //IsLegal
 
-int CheckString1(char Exp[]) {
+int CheckExpression1(char Exp[]) {
     //对表达式进行合法性检验
     int Layer = 0;
     int i;
@@ -78,4 +78,118 @@ int CheckString1(char Exp[]) {
     } //for
 
     return 1;
-} //CheckString1
+} //CheckExpression1
+
+int IsMatched(char *Exp, int S, int E) {
+    //检验字符串Exp[S..E]的两端的括号是否匹配
+    int Layer = 0;
+    int i;
+
+    for (i = S; i < E; i++) { //除末端外全部遍历
+        if (Exp[i] == '(') Layer++; //左括号
+        else if (Exp[i] == ')') { //右括号
+            Layer--;
+            if (Layer == 0) return 0; //提前匹配成功
+        } //if
+    } //for
+
+    return 1;
+} //IsMatched
+
+int IsOperator(char ch) {
+    //判断一个符号是否是运算符
+    return ch == '!' || ch == '&' || ch == '|' || ch == '>' || ch == '=';
+} //IsOperator
+
+int Compare(char ch1, char ch2) {
+    //返回运算符ch1不落后于ch2的正确与否
+    char Ope[5] = {'!', '&', '|', '>', '='};
+    int pos1, pos2;
+    int i;
+
+    if (IsOperator(ch1) && IsOperator(ch2)) { //都是运算符
+        for (i = 0; i < 5; i++) { //遍历
+            if (Ope[i] == ch1) pos1 = i; //运算符1
+            if (Ope[i] == ch2) pos2 = i; //运算符2
+        } //for
+
+        return pos1 < pos2;
+    } //if
+} //Compare
+
+int FindLowest(char *Exp, int S, int E) {
+    //找到表达式Exp[S..E]中最后被运算的运算符
+    char Lch = Exp[S];
+    int Layer = 0, Lpos = -1;
+    int i;
+
+    for (i = S; i <= E; i++) { //遍历
+        if (IsOperator(Exp[i])) { //运算符
+            if (Layer == 0 && Compare(Lch, Exp[i])) { //更后被运算
+                Lch = Exp[i];
+                Lpos = i;
+            } //if
+        } else if (Exp[i] == '(') Layer++; //左括号
+        else if (Exp[i] == ')') Layer--; //右括号
+    } //for
+
+    return Lpos;
+} //FindLowest
+
+int IsVariable(char ch) {
+    //返回字符ch是否为逻辑变量
+    return ch >= 'A' && ch <= 'Z';
+} //IsVariable
+
+int IsConstant(char ch) {
+    //返回字符ch是否为逻辑常量
+    return ch == '0' || ch == '1';
+} //IsConstant
+
+int CheckOperator(char *Exp, int pos, int S, int E) {
+    //判断下标pos处的运算符有没有被正确使用
+    if (pos < S || pos > E) return 0; //不在界内
+    if (!IsOperator(Exp[pos])) return 0; //不是运算符
+    if (Exp[pos] == '!') { //非运算符
+        if (pos == E) return 0; //右边缘
+        if (IsOperator(Exp[pos + 1])) return 0; //右边不是运算数
+    } else if (Exp[pos] == '&') { //合取运算符
+        if (pos == S || pos == E) return 0; //左右边缘
+        if (IsOperator(Exp[pos - 1]) || IsOperator(Exp[pos + 1])) return 0; //左边或右边不是运算数
+    } else if (Exp[pos] == '|') { //析取运算符
+        if (pos == S || pos == E) return 0;
+        if (IsOperator(Exp[pos - 1]) || IsOperator(Exp[pos + 1])) return 0;
+    } else if (Exp[pos] == '>') { //蕴涵运算符
+        if (pos == S || pos == E) return 0;
+        if (IsOperator(Exp[pos - 1]) || IsOperator(Exp[pos + 1])) return 0;
+    } else if (Exp[pos] == '=') { //等价运算符
+        if (pos == S || pos == E) return 0;
+        if (IsOperator(Exp[pos - 1]) || IsOperator(Exp[pos + 1])) return 0;
+    } //if
+
+    return 1;
+} //CheckOperator
+
+int CheckExpression2(char *Exp, int S, int E) {
+    //对字符串Exp[S..E]进行可算性检验
+    int pos, F1, F2;
+
+    if (S > E) return -5; //没字符，不可算
+    if (S == E) { //只有一个字符
+        if (Exp[S] >= 'A' && Exp[S] <= 'Z' || Exp[S] == '0' || Exp[S] == '1') return 1; //可算字符
+        else return -5; //不可算字符
+    } //if
+    while (S < E && Exp[S] == '(' && Exp[E] == ')') { //超过两个字符且有括号
+        if (IsMatched(Exp, S, E)) { //匹配的括号
+            S++;
+            E--;
+        } //if
+    } //while
+    pos = FindLowest(Exp, S, E);
+    if (pos == -1) return -5; //没有这样的运算符
+    if (!CheckOperator(Exp, S, E, pos)) return -5; //运算符未被正确使用
+    F1 = CheckExpression2(Exp, S, pos - 1);
+    F2 = CheckExpression2(Exp, pos + 1, E); //检验两个子式的可算性
+
+    return F1 && F2;
+} //CheckExpression2
