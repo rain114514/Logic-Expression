@@ -119,7 +119,7 @@ int Compare(char ch1, char ch2) {
 
 int FindLowest(char *Exp, int S, int E) {
     //找到表达式Exp[S..E]中最后被运算的运算符
-    char Lch = Exp[S];
+    char Lch = '!';
     int Layer = 0, Lpos = -1;
     int i;
 
@@ -187,9 +187,60 @@ int CheckExpression2(char *Exp, int S, int E) {
     } //while
     pos = FindLowest(Exp, S, E);
     if (pos == -1) return -5; //没有这样的运算符
-    if (!CheckOperator(Exp, S, E, pos)) return -5; //运算符未被正确使用
+    if (!CheckOperator(Exp, pos, S, E)) return -5; //运算符未被正确使用
     F1 = CheckExpression2(Exp, S, pos - 1);
     F2 = CheckExpression2(Exp, pos + 1, E); //检验两个子式的可算性
-
-    return F1 && F2;
+    if (F1 && F2) return 1;
+    else return -5;
 } //CheckExpression2
+
+void ErrorPrint(char Exp[], int E) {
+    //根据错误类型E输出Exp中的错误
+    int Layer = 0, Lpos;
+    int i;
+
+    switch (E) { //判断
+        case 0: { //该表达式为空
+            printf("Error: Empty expression!\n");
+            break;
+        } case -1: { //该表达式包含非法字符
+            printf("Error: Illegal character!\n");
+            for (i = 0; Exp[i] != '\0'; i++) { //寻找第一个非法字符
+                if (!IsLegal(Exp[i])) break; //非法字符
+            } //for
+            printf("The first illegal character is %c, located at %d!\n", Exp[i], i + 1);
+            break;
+        } case -2: { //该表达式存在左括号匹配失败
+            printf("Error: Unmatched left bracket!\n");
+            for (i = 0; Exp[i] != '\0'; i++) { //遍历
+                if (Exp[i] == '(') { //左括号
+                    if (Layer == 0) Lpos = i + 1; //最外层左括号
+                    Layer++;
+                } else if (Exp[i] == ')') Layer--; //右括号
+            } //for
+            printf("The first unmatched left bracket locates at %d\n", Lpos);
+            break;
+        } case -3: { //该表达式存在右括号匹配失败
+            printf("Error: Unmatched right bracket!\n");
+            for (i = 0; Exp[i] != '\0'; i++) { //寻找第一个匹配失败的右括号
+                if (Exp[i] == '(') Layer++; //左括号
+                else if (Exp[i] == ')') { //右括号
+                    if (Layer == 0) break; //右括号匹配失败
+                    Layer--;
+                } //if
+            } //for
+            printf("The first unmatched right bracket locates at %d\n", i + 1);
+            break;
+        } case -4: { //该表达式存在空括号
+            printf("Error: Empty brackets!\n");
+            for (i = 0; Exp[i + 1] != '\0'; i++) { //寻找第一个空括号
+                if (Exp[i] == '(' && Exp[i + 1] == ')') break; //空括号
+            } //for
+            printf("The first empty bracket locates at %d\n", i + 1);
+            break;
+        } case -5: { //该表达式不可算
+            printf("Error: Incalculable expression!\n");
+            break;
+        } //case
+    } //switch
+} //ErrorPrint
