@@ -276,13 +276,3 @@ BiTree CreateBiTree(char Exp[], int S, int E) {
 
     return T;
 } //CreateBiTree
-
-void PostOrder(BiTree T) {
-    //输出二叉树T的后序遍历序列
-    if (T == NULL) return ;
-    else {
-        PostOrder(T->left);
-        PostOrder(T->right);
-        printf("%c", T->data);
-    } //if
-} //PostOrder
