@@ -276,3 +276,12 @@ BiTree CreateBiTree(char Exp[], int S, int E) {
 
     return T;
 } //CreateBiTree
+
+void DestroyBiTree(BiTree T) {
+    //彻底销毁二叉树T
+    if (T != NULL) {
+        DestroyBiTree(T->left);
+        DestroyBiTree(T->right);
+        free(T);
+    } //if
+} //DestroyBiTree
