@@ -102,7 +102,7 @@ int IsOperator(char ch) {
 } //IsOperator
 
 int Compare(char ch1, char ch2) {
-    //返回运算符ch1不落后于ch2的正确与否
+    //返回运算符ch1优先于于ch2的正确与否
     char Ope[5] = {'!', '&', '|', '>', '='};
     int pos1, pos2;
     int i;
@@ -119,21 +119,24 @@ int Compare(char ch1, char ch2) {
 
 int FindLowest(char *Exp, int S, int E) {
     //找到表达式Exp[S..E]中最后被运算的运算符
-    char Lch = '!';
-    int Layer = 0, Lpos = -1;
+    int **Ope;
+    int L = strlen(Exp), Layer = 0, LO = 0, pos = 0;
     int i;
 
-    for (i = S; i <= E; i++) { //遍历
-        if (IsOperator(Exp[i])) { //运算符
-            if (Layer == 0 && Compare(Lch, Exp[i])) { //更后被运算
-                Lch = Exp[i];
-                Lpos = i;
-            } //if
+    Ope = (int**)malloc(L * sizeof(int*));
+    for (i = 0; i < L; i++) Ope[i] = (int*)malloc(sizeof(int) * 2); //申请空间
+    for (i = 0; i < L; i++) { //遍历
+        if (IsOperator(Exp[i]) && Layer == 0) { //符合条件
+            Ope[LO][0] = Exp[i];
+            Ope[LO++][1] = i;
         } else if (Exp[i] == '(') Layer++; //左括号
         else if (Exp[i] == ')') Layer--; //右括号
     } //for
+    for (i = 0; i < LO; i++) { //遍历
+        if (Compare(Ope[pos][0], Ope[i][0]) || Ope[pos][0] == Ope[i][0] && Ope[pos][1] < Ope[i][1] ) pos = i; //优先级更低或更靠后
+    } //for
 
-    return Lpos;
+    return Ope[pos][1];
 } //FindLowest
 
 int IsVariable(char ch) {
@@ -244,3 +247,42 @@ void ErrorPrint(char Exp[], int E) {
         } //case
     } //switch
 } //ErrorPrint
+
+BiTree CreateBiTree(char Exp[], int S, int E) {
+    //根据表达式Exp[S..E]建立逻辑二叉表达式树
+    BiTree T;
+    int pos;
+
+    if (S > E) return NULL; //表达式为空
+    if (S == E) { //表达式仅有一个逻辑变量或逻辑常量
+        T = (BiTree)malloc(sizeof(BiNode));
+        T->data = Exp[S];
+        T->left = NULL;
+        T->right = NULL;
+
+        return T;
+    } //if
+    while (S <= E && Exp[S] == '(' && Exp[E] == ')') { //表达式被括号包裹
+        if (IsMatched(Exp, S, E)) { //两端括号是匹配的
+            S++;
+            E--;
+        } //if
+    } //while
+    pos = FindLowest(Exp, S, E);
+    T = (BiTree)malloc(sizeof(BiNode));
+    T->data = Exp[pos];
+    T->left = CreateBiTree(Exp, S, pos - 1);
+    T->right = CreateBiTree(Exp, pos + 1, E);
+
+    return T;
+} //CreateBiTree
+
+void PostOrder(BiTree T) {
+    //输出二叉树T的后序遍历序列
+    if (T == NULL) return ;
+    else {
+        PostOrder(T->left);
+        PostOrder(T->right);
+        printf("%c", T->data);
+    } //if
+} //PostOrder
